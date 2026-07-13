@@ -25,12 +25,13 @@ public:
 
 	const VkResult acquireNextImage(uint32_t *) const;
 	const VkResult submitCommandBuffer(const VkCommandBuffer*, const uint32_t*);
+	const uint32_t getCurrentFrame() const {return mCurrentFrame;}
 private:
 	void init();
 	void createSwapChain();
 	void createImageViews();
 	void createRenderPass();
-	// void createDepthResources();
+	void createDepthResources();
 	void createFrameBuffers();
 	void createSyncObjects();
 
@@ -38,6 +39,7 @@ private:
 	const VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>&) const;
 	const VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR&) const;
 
+	VkFormat findDepthFormat();
 
 	VkSwapchainKHR mSwapChain;
 	std::shared_ptr<SwapChain> mOldSwapChain;
@@ -51,6 +53,11 @@ private:
 
 	std::vector<VkImage> mSwapchainImages;
 	std::vector<VkImageView> mSwapchainImageViews;
+
+	VkImage mDepthImage;
+	VkImageView mDepthImageView;
+	VkDeviceMemory mDepthMemory;
+
 	VkRenderPass mRenderPass;
 
 	std::vector<VkFramebuffer> mFrameBuffers;
@@ -61,6 +68,7 @@ private:
 	std::vector<VkFence> mInFlightFences;
 
 	uint32_t mCurrentFrame = 0;
+	VkFormat mDepthFormat;
 };
 
 }

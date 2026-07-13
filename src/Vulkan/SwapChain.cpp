@@ -32,12 +32,31 @@ SwapChain::~SwapChain() {
 void SwapChain::init() {
 	createSwapChain();
 	createImageViews();
+	createDepthResources();
 	createRenderPass();
-	// createDepthResources();
 	createFrameBuffers();
 	createSyncObjects();
 }
 
+void SwapChain::createDepthResources() {
+	mDepthFormat = findDepthFormat();
+
+	mDevice.createImage(
+		mSwapChainExtent.width, mSwapChainExtent.height,
+		mDepthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		mDepthImage, mDepthMemory
+	);
+
+	mDevice.createImageView(mDepthImage, mDepthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, mDepthImageView);
+}
+
+VkFormat SwapChain::findDepthFormat() {
+	return mDevice.findSupportedFormat(
+		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+		VK_IMAGE_TILING_OPTIMAL,
+		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+	);
+}
 
 void SwapChain::createSwapChain() {
 	SwapchainSupportDetails swapchainSupportDetails = mDevice.getSwapchainSupport();
@@ -97,6 +116,7 @@ void SwapChain::createSwapChain() {
 		std::cout << "Error: " << result << "\n";
 		throw std::runtime_error("Failed to create swapchain!");
 	}
+
 	// spdlog::warn("Look at the difference between the swapchain buffers and the
 	// " "frame buffers");
 
@@ -117,25 +137,7 @@ void SwapChain::createImageViews() {
 	spdlog::info("Total images views: {}", mSwapchainImageViews.size());
 
 	for (int i = 0; i < mSwapchainImages.size(); i++) {
-		VkImageViewCreateInfo imageViewCreateInfo = {};
-		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCreateInfo.image = mSwapchainImages[i];
-		imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		imageViewCreateInfo.format = mImageFormat;
-
-		imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-		imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-		imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
-		imageViewCreateInfo.subresourceRange.levelCount = 1;
-		imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
-		imageViewCreateInfo.subresourceRange.layerCount = 1;
-
-		vkCreateImageView(mDevice.get(), &imageViewCreateInfo, nullptr,
-						  &mSwapchainImageViews[i]);
+		mDevice.createImageView(mSwapchainImages[i], mImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, mSwapchainImageViews[i]);
 	}
 }
 
@@ -157,26 +159,48 @@ void SwapChain::createRenderPass() {
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+	VkAttachmentDescription depthAttachment{};
+	depthAttachment.format = mDepthFormat;
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef = {};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
 
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
+
 	VkSubpassDependency dependency{};
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependency.dstSubpass = 0;
 
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	dependency.srcAccessMask = 0;
 
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	VkRenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.attachmentCount = 2;
+
+	VkAttachmentDescription attachments[] = {colorAttachment, depthAttachment};
+	renderPassInfo.pAttachments = attachments;
+
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 	renderPassInfo.dependencyCount = 1;
@@ -193,11 +217,11 @@ void SwapChain::createRenderPass() {
 void SwapChain::createFrameBuffers() {
 	mFrameBuffers.resize(mSwapchainImageViews.size());
 	for (size_t i = 0; i < mSwapchainImageViews.size(); i++) {
-		VkImageView attachments[] = {mSwapchainImageViews[i]};
+		VkImageView attachments[] = {mSwapchainImageViews[i], mDepthImageView};
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = mRenderPass;
-		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.attachmentCount = 2;
 		framebufferInfo.pAttachments = attachments;
 		framebufferInfo.width = mSwapChainExtent.width;
 		framebufferInfo.height = mSwapChainExtent.height;

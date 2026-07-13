@@ -68,6 +68,11 @@ vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 
 	configInfo.mVertexInputBindingDescriptions = Model::Vertex::getBindingDescriptions();
 	configInfo.mVertexInputAttributeDescriptions = Model::Vertex::getAttributeDescriptions();
+
+	configInfo.mDepthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	configInfo.mDepthStencilInfo.depthTestEnable = VK_TRUE;
+	configInfo.mDepthStencilInfo.depthWriteEnable = VK_TRUE;
+	configInfo.mDepthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS;
 }
 
 void Pipeline::createGraphicsPipeline(const std::string& vertFilePath, const std::string& fragFilePath, const PipelineConfigInfo& configInfo) {
@@ -132,7 +137,7 @@ void Pipeline::createGraphicsPipeline(const std::string& vertFilePath, const std
 	pipelineInfo.pViewportState = &configInfo.mViewportInfo;
 	pipelineInfo.pRasterizationState = &configInfo.mRasterizationInfo;
 	pipelineInfo.pMultisampleState = &configInfo.mMultisamplingInfo;
-	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pDepthStencilState = &configInfo.mDepthStencilInfo;
 	pipelineInfo.pColorBlendState = &configInfo.mColorBlendInfo;
 	pipelineInfo.pDynamicState = &configInfo.mDynamicStateInfo;
 	pipelineInfo.layout = configInfo.mPipelineLayout;

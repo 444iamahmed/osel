@@ -8,6 +8,9 @@
 #include <fstream>
 #include <filesystem>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/transform.hpp>
+
 #include "Pipeline.hpp"
 
 namespace PhoenixEngine {
@@ -16,6 +19,7 @@ Renderer::Renderer(Window& window, Device& device)
 : mWindow{window}, mDevice{device} {
 	recreateSwapChain();
 	createCommandBuffers();
+	createPushConstantRanges();
 	createPipelineLayout();
 	createPipeline();
 }
@@ -39,12 +43,14 @@ void Renderer::drawFrame() {
 	recordCommandBuffer(currentCommandBuffer, mCurrentImageIndex);
 
 	mSwapChain->submitCommandBuffer(&currentCommandBuffer, &mCurrentImageIndex);
+
+	mTimeFrame++;
 }
 
 
 void Renderer::recreateSwapChain() {
 	VkExtent2D extent = mWindow.getExtent();
-	while (extent.width == 0 ||extent.height == 0) {
+	while (extent.width == 0 || extent.height == 0) {
 		extent = mWindow.getExtent();
 		glfwWaitEvents();
 	}
@@ -105,8 +111,12 @@ void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer,
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = mSwapChain->getSwapChainExtent();
 	VkClearValue clearColor = {{{0.5f, 0.5f, 0.5f, 1.0f}}};
-	renderPassInfo.clearValueCount = 1;
-	renderPassInfo.pClearValues = &clearColor;
+	VkClearValue clearDepth = {.depthStencil = {1.0, 0}};
+
+	VkClearValue clearValues[] = {clearColor, clearDepth};
+	renderPassInfo.clearValueCount = 2;
+	renderPassInfo.pClearValues = clearValues;
+
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
 						 VK_SUBPASS_CONTENTS_INLINE);
 	mPipeline->bind(commandBuffer);
@@ -125,6 +135,26 @@ void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer,
 
 	spdlog::info("drawing model");
 	mModel->bind(commandBuffer);
+
+	//make a model view matrix for rendering the object
+	//camera position
+	glm::vec3 camPos = { 0.f,0.f,-2.f };
+
+	glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
+	//camera projection
+	glm::mat4 projection = glm::perspective(glm::radians(70.f), 1700.f / 900.f, 0.1f, 200.0f);
+	projection[1][1] *= -1;
+	//model rotation
+	glm::mat4 model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(mTimeFrame * 0.01f), glm::vec3(0, 1, 0));
+
+	//calculate final mesh matrix
+	glm::mat4 mesh_matrix = projection * view * model;
+
+	SimplePushConstant constants;
+	constants.transform = mesh_matrix;
+
+	vkCmdPushConstants(commandBuffer, mPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(SimplePushConstant), &constants);
+
 	mModel->draw(commandBuffer);
 
 	vkCmdEndRenderPass(commandBuffer);
@@ -136,14 +166,22 @@ void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer,
 void Renderer::loadModels() {
 	spdlog::info("attempting model loading");
 	std::vector<Model::Vertex> vertices {
-		{{0.0, -0.5}, {1.0, 0.0, 0.0}},
-		{{0.5, 0.5}, {0.0, 1.0, 0.0}},
-		{{-0.5, 0.5}, {0.0, 0.0, 1.0}}
+		{{0.0, -0.5, .0}, {1.0, 0.0, 0.0}},
+		{{0.5, 0.5, .0}, {0.0, 1.0, 0.0}},
+		{{-0.5, 0.5, .0}, {0.0, 0.0, 1.0}},
+		{{-0., 0.0, 0.5}, {1.0, 0.0, 1.0}}
+	};
+
+	std::vector<uint16_t> indices {
+		1,2,3,
+		3,2,0,
+		3,0,1,
+		2,1,0
 	};
 
 	spdlog::info("successfully created vertices");
 
-	mModel = std::make_unique<Model>(mDevice, vertices);
+	mModel = std::make_unique<Model>(mDevice, vertices, indices);
 	spdlog::info("successfully created model");
 }
 	
@@ -161,12 +199,24 @@ void Renderer::createPipeline() {
 		pipelineConfigInfo
 		);
 }
-	
+
+void Renderer::createPushConstantRanges() {
+	mPushConstantRanges.reserve(1);
+
+	mPushConstantRanges.push_back({
+		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+		.offset = 0,
+		.size = sizeof(SimplePushConstant)
+	});
+}
+
 void Renderer::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 0;			// Optional
-	pipelineLayoutInfo.pushConstantRangeCount = 0;	// Optional
+
+	pipelineLayoutInfo.pPushConstantRanges = mPushConstantRanges.data();
+	pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(mPushConstantRanges.size());	// Optional
 
 	if (vkCreatePipelineLayout(mDevice.get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");

@@ -54,7 +54,7 @@ public:
 
 	const VkSurfaceKHR& getSurface() const { return mSurface; }
 
-	const SwapchainSupportDetails getSwapchainSupport() { return checkSwapchainSupport(mPhysicalDevice); }
+	const SwapchainSupportDetails getSwapchainSupport() { return checkSwapChainSupport(mPhysicalDevice); }
 	const QueueFamilyIndices getQueueFamilies() { return findQueueFamilies(mPhysicalDevice); }
 
 	const VkCommandPool& getCommandPool() { return mCommandPool; }
@@ -71,7 +71,10 @@ public:
 							 uint32_t imageIndex) const;
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
-   private:
+	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
+	void createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView& imageView);
+	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+private:
 	void choosePhysicalDevice();
 	void createInstance();
 
@@ -85,7 +88,7 @@ public:
 
 	QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice&) const;
 
-	SwapchainSupportDetails checkSwapchainSupport(const VkPhysicalDevice&);
+	SwapchainSupportDetails checkSwapChainSupport(const VkPhysicalDevice&);
 
 	bool isDeviceSuitable(const VkPhysicalDevice&);
 

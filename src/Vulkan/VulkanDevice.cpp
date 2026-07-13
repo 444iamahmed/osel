@@ -55,6 +55,20 @@ Device::Device(Window& window) : mWindow{window} {
 	createCommandPool();
 }
 
+VkFormat Device::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+	for (const auto& format : candidates) {
+		VkFormatProperties properties;
+		vkGetPhysicalDeviceFormatProperties(mPhysicalDevice, format, &properties);
+
+		if ((tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features) ||
+			(tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)) {
+			return format;
+		}
+	}
+
+	throw std::runtime_error("No support for format request");
+}
+
 QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice& device) const {
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
@@ -90,7 +104,7 @@ QueueFamilyIndices Device::findQueueFamilies(const VkPhysicalDevice& device) con
 	return indices;
 }
 
-SwapchainSupportDetails Device::checkSwapchainSupport(const VkPhysicalDevice& device) {
+SwapchainSupportDetails Device::checkSwapChainSupport(const VkPhysicalDevice& device) {
 	SwapchainSupportDetails details;
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface,
@@ -146,7 +160,7 @@ bool Device::checkExtensionSupport(const VkPhysicalDevice& device) const {
 bool Device::isDeviceSuitable(const VkPhysicalDevice& device) {
 	QueueFamilyIndices indices = findQueueFamilies(device);
 
-	SwapchainSupportDetails swapchainDetails = checkSwapchainSupport(device);
+	SwapchainSupportDetails swapchainDetails = checkSwapChainSupport(device);
 
 	bool swapchainSuitable = !swapchainDetails.formats.empty() &&
 							 !swapchainDetails.presentModes.empty();
@@ -199,6 +213,63 @@ void Device::createBuffer(
 	spdlog::info("passed buffer creation");
 
 	vkBindBufferMemory(mDevice, buffer, memory, 0);
+}
+
+void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+	VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory) {
+	VkImageCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	createInfo.format = format;
+	createInfo.imageType = VK_IMAGE_TYPE_2D;
+	createInfo.tiling = tiling;
+	createInfo.extent = { width, height, 1 };
+	createInfo.usage = usage;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	createInfo.mipLevels = 1;
+	createInfo.arrayLayers = 1;
+	createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+
+	if (vkCreateImage(mDevice, &createInfo, nullptr, &image) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create image!");
+	}
+
+	VkMemoryRequirements requirements;
+	vkGetImageMemoryRequirements(mDevice, image, &requirements);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = requirements.size;
+	allocInfo.memoryTypeIndex = findMemoryType(requirements.memoryTypeBits, properties);
+
+	auto result = vkAllocateMemory(mDevice, &allocInfo, nullptr, &memory);
+	if (result != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate vertex image memory!");
+	}
+
+	spdlog::info("passed image creation");
+
+	vkBindImageMemory(mDevice, image, memory, 0);
+
+}
+
+void Device::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView& imageView) {
+	VkImageViewCreateInfo imageViewCreateInfo = {};
+	imageViewCreateInfo.image = image;
+	imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	imageViewCreateInfo.format = format;
+
+	VkImageSubresourceRange subresourceRange = {};
+	subresourceRange.aspectMask = aspectFlags;
+	subresourceRange.layerCount = 1;
+	subresourceRange.levelCount = 1;
+	subresourceRange.baseMipLevel = 0;
+	subresourceRange.baseArrayLayer = 0;
+
+	imageViewCreateInfo.subresourceRange = subresourceRange;
+
+	if (vkCreateImageView(mDevice, &imageViewCreateInfo, nullptr, &imageView) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create image view!");
+	}
 }
 
 void Device::choosePhysicalDevice() {

@@ -13,14 +13,14 @@ namespace Vulkan {
 class Model {
 public:
 	struct Vertex {
-		glm::vec2 position;
+		glm::vec3 position;
 		glm::vec3 color;
 
 		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 		static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
 	};
 
-	Model(Device&, const std::vector<Vertex>&);
+	Model(Device&, const std::vector<Vertex>&, const std::vector<uint16_t>&);
 	~Model();
 
 	Model(const Model&) = delete;
@@ -28,15 +28,19 @@ public:
 
 	void bind(VkCommandBuffer commandBuffer);
 
-	void draw(VkCommandBuffer commanbBuffer);
+	void draw(VkCommandBuffer commandBuffer);
 private:
 	void createVertexBuffers(const std::vector<Vertex>&);
+	void createIndexBuffers(const std::vector<uint16_t>&);
 
 	Device& mDevice;
 
 	VkBuffer mVertexBuffer;
-	VkDeviceMemory mMemory;
+	VkBuffer mIndexBuffer;
+	VkDeviceMemory mVertexMemory;
+	VkDeviceMemory mIndexMemory;
 	uint32_t mVertexCount;
+	uint32_t mIndexCount;
 };
 } //namespace Vulkan
 } //namespace PhoenixEngine

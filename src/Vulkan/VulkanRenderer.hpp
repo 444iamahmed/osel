@@ -15,6 +15,11 @@
 
 namespace PhoenixEngine {
 namespace Vulkan {
+
+struct SimplePushConstant {
+	glm::mat4 transform;
+};
+
 class Renderer {
 public:
 	Renderer(Window&, Device&);
@@ -26,7 +31,7 @@ public:
 	void drawFrame();
 	void loadModels();
 
-	VkCommandBuffer getCurrentCommandBuffer() const { return mCommandBuffers[currentFrameIndex]; }
+	VkCommandBuffer getCurrentCommandBuffer() const { return mCommandBuffers[mSwapChain->getCurrentFrame()]; }
 	VkRenderPass getSwapChainRenderPass() const { return mSwapChain->getRenderPass(); }
 
 private:
@@ -37,10 +42,14 @@ private:
 
 	//Temporary
 	void createPipeline();
+	void createPushConstantRanges();
 	void createPipelineLayout();
+
 	VkPipelineLayout mPipelineLayout;
 	std::unique_ptr<Pipeline> mPipeline;
-	
+
+	std::vector<VkPushConstantRange> mPushConstantRanges;
+
 	Window& mWindow;
 	Device& mDevice;
 	std::unique_ptr<SwapChain> mSwapChain;
@@ -50,7 +59,7 @@ private:
 	std::vector<VkCommandBuffer> mCommandBuffers;
 
 	uint32_t mCurrentImageIndex;
-	uint32_t currentFrameIndex{0};
+	uint32_t mTimeFrame{0};
 };
 }
 }

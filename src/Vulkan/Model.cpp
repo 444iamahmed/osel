@@ -7,7 +7,7 @@ namespace Vulkan {
 std::vector<VkVertexInputAttributeDescription> Model::Vertex::getAttributeDescriptions() {
     std::vector<VkVertexInputAttributeDescription> descriptions(2); 
     descriptions[0].binding = 0;
-    descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+    descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
     descriptions[0].location = 0;
     descriptions[0].offset = offsetof(Vertex, position);
 
@@ -28,13 +28,17 @@ std::vector<VkVertexInputBindingDescription> Model::Vertex::getBindingDescriptio
     return descriptions;
 }
 
-Model::Model(Device& inDevice, const std::vector<Vertex>& vertices) : mDevice{inDevice} {
+Model::Model(Device& inDevice, const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices) : mDevice{inDevice} {
     createVertexBuffers(vertices);
+    createIndexBuffers(indices);
 }
 
 Model::~Model() {
     vkDestroyBuffer(mDevice.get(), mVertexBuffer, nullptr);
-    vkFreeMemory(mDevice.get(), mMemory, nullptr);
+    vkFreeMemory(mDevice.get(), mVertexMemory, nullptr);
+
+    vkDestroyBuffer(mDevice.get(), mIndexBuffer, nullptr);
+    vkFreeMemory(mDevice.get(), mIndexMemory, nullptr);
 }
 
 void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
@@ -49,18 +53,34 @@ void Model::createVertexBuffers(const std::vector<Vertex>& vertices) {
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         mVertexBuffer,
-        mMemory
+        mVertexMemory
     );
 
-    spdlog::info("passed mapping");
     void *data;
-    spdlog::info("passed mapping");
-    vkMapMemory(mDevice.get(), mMemory, 0, size, 0, &data);
-    spdlog::info("passed mapping");
+    vkMapMemory(mDevice.get(), mVertexMemory, 0, size, 0, &data);
     memcpy(data, vertices.data(), static_cast<size_t>(size));
-    spdlog::info("passed mapping");
-    vkUnmapMemory(mDevice.get(), mMemory);
-    spdlog::info("passed mapping");
+    vkUnmapMemory(mDevice.get(), mVertexMemory);
+}
+
+void Model::createIndexBuffers(const std::vector<uint16_t>& indices) {
+    spdlog::info("attempting buffer creation");
+    mIndexCount = static_cast<uint32_t>(indices.size());
+    assert(mIndexCount >= 3 && "Index count must be at least 3");
+
+    VkDeviceSize size = sizeof(uint16_t) * mIndexCount;
+
+    mDevice.createBuffer(
+        size,
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        mIndexBuffer,
+        mIndexMemory
+    );
+
+    void *data;
+    vkMapMemory(mDevice.get(), mIndexMemory, 0, size, 0, &data);
+    memcpy(data, indices.data(), static_cast<size_t>(size));
+    vkUnmapMemory(mDevice.get(), mIndexMemory);
 }
 
 void Model::bind(VkCommandBuffer commandBuffer) {
@@ -68,10 +88,11 @@ void Model::bind(VkCommandBuffer commandBuffer) {
     VkDeviceSize offsets[] = { 0 };
 
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, buffers, offsets);
+    vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer, 0, VK_INDEX_TYPE_UINT16);
 }
 
-void Model::draw(VkCommandBuffer commanbBuffer) {
-    vkCmdDraw(commanbBuffer, mVertexCount, 1, 0, 0);
+void Model::draw(VkCommandBuffer commandBuffer) {
+    vkCmdDrawIndexed(commandBuffer, mIndexCount, 1, 0, 0, 0);
 }
 }
 }

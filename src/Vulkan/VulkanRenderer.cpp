@@ -13,7 +13,7 @@
 
 #include "Pipeline.hpp"
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 Renderer::Renderer(Window& window, Device& device)
 : mWindow{window}, mDevice{device} {

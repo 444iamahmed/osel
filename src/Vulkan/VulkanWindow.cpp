@@ -4,10 +4,10 @@
 
 #include <spdlog/spdlog.h>
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 Window::Window(int inWidth, int inHeight, std::string inName)
-	: PhoenixEngine::Window(inWidth, inHeight, inName) {
+	: OselEngine::Window(inWidth, inHeight, inName) {
 }
 
 void Window::createSurface(VkInstance& instance, VkSurfaceKHR& surface) const {

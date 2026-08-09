@@ -13,7 +13,7 @@
 
 #include "Pipeline.hpp"
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 
 struct SimplePushConstant {

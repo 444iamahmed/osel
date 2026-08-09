@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace  Vulkan {
 class SwapChain {
 public:

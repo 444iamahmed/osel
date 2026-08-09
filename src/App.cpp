@@ -4,7 +4,7 @@
 
 #include "Vulkan/Pipeline.hpp"
 
-namespace PhoenixEngine {
+namespace OselEngine {
 App::App() {
 }
 

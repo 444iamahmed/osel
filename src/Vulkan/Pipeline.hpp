@@ -5,7 +5,7 @@
 #include <vector>
 #include <filesystem>
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 struct PipelineConfigInfo
 {

@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-namespace  PhoenixEngine {
+namespace  OselEngine {
 namespace Vulkan {
 SwapChain::SwapChain(Device& device, VkExtent2D extent) : mDevice{device}, mWindowExtent{extent} {
 	init();

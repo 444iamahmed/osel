@@ -6,7 +6,7 @@
 
 #include <string>
 
-namespace PhoenixEngine {
+namespace OselEngine {
 class Window {
 public:
 	Window(int inWidth, int inHeight, std::string inName);

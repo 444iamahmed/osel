@@ -8,7 +8,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 class Model {
 public:
@@ -29,6 +29,7 @@ public:
 	void bind(VkCommandBuffer commandBuffer);
 
 	void draw(VkCommandBuffer commandBuffer);
+
 private:
 	void createVertexBuffers(const std::vector<Vertex>&);
 	void createIndexBuffers(const std::vector<uint16_t>&);

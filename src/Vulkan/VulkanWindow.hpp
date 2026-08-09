@@ -2,9 +2,9 @@
 
 #include "../Window.hpp"
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
-class Window : public PhoenixEngine::Window {
+class Window : public OselEngine::Window {
 public:
 	Window(int inWidth, int inHeight, std::string inName);
 	~Window() {};

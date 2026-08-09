@@ -4,7 +4,7 @@
 #include "Vulkan/VulkanWindow.hpp"
 #include "Vulkan/VulkanRenderer.hpp"
 
-namespace PhoenixEngine {
+namespace OselEngine {
 class App {
 public:
 	static constexpr int WIDTH =

@@ -2,7 +2,7 @@
 
 #include "Window.hpp"
 
-namespace PhoenixEngine {
+namespace OselEngine {
 Window::Window(int inWidth, int inHeight, std::string inName)
 	: width(inWidth), height(inHeight), name(inName) {
 	init();

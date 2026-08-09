@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 // local callback functions
 static VkBool32 VKAPI_CALL
@@ -215,8 +215,32 @@ void Device::createBuffer(
 	vkBindBufferMemory(mDevice, buffer, memory, 0);
 }
 
+void Device::beginSingleTimeCommands(VkCommandBuffer commandBuffer) {
+	VkCommandBufferBeginInfo beginInfo{};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.pNext = nullptr;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	beginInfo.pInheritanceInfo = nullptr;
+
+	vkBeginCommandBuffer(commandBuffer, &beginInfo);
+}
+
+void Device::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+	VkSubmitInfo submitInfo{};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.pNext = nullptr;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &commandBuffer;
+
+
+	if(vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
+		throw std::runtime_error("failed to end command buffer!");
+	}
+
+}
+
 void Device::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
-	VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory) {
+                         VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory) {
 	VkImageCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	createInfo.format = format;

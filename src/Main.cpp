@@ -6,7 +6,7 @@
 
 int main() {
 	spdlog::set_level(spdlog::level::info);
-	PhoenixEngine::App app;
+	OselEngine::App app;
 	app.run();
 
 	return 0;

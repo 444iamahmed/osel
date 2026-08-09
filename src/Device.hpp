@@ -1,6 +1,6 @@
 #pragma once
 
-namespace PhoenixEngine {
+namespace OselEngine {
 class Device {
 };
 }  // namespace PhoenixEngine

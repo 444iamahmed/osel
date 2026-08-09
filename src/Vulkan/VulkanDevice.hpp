@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -71,9 +71,12 @@ public:
 							 uint32_t imageIndex) const;
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
+	void beginSingleTimeCommands(VkCommandBuffer commandBuffer);
+	void endSingleTimeCommands(VkCommandBuffer command_buffer);
 	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
 	void createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView& imageView);
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+
 private:
 	void choosePhysicalDevice();
 	void createInstance();

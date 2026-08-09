@@ -84,6 +84,7 @@ if os.getenv("VULKAN_SDK") then
 	includedirs({
 		"/usr/include", -- normal system includes
 		"/usr/include/GLFW", -- system GLFW headers
+		"/usr/include/stb",
 		"%{os.getenv('VULKAN_SDK')}/include", -- Vulkan SDK headers
 	})
 
@@ -94,6 +95,7 @@ else
 	includedirs({
 		"/usr/include",
 		"/usr/include/GLFW",
+		"/usr/include/stb",
 		"/usr/include/vulkan",
 	})
 

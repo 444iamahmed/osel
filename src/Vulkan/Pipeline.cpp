@@ -5,7 +5,7 @@
 #include "Model.hpp"
 #include "Utils.hpp"
 
-namespace PhoenixEngine {
+namespace OselEngine {
 namespace Vulkan {
 Pipeline::Pipeline(Device& device, const std::string& vertFilePath, const std::string& fragFilePath,
 				   const PipelineConfigInfo& configInfo) : mDevice{device} {

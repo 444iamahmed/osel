@@ -2,8 +2,7 @@
 
 #include <assert.h>
 
-namespace PhoenixEngine {
-namespace Vulkan {
+namespace OselEngine::Vulkan {
 std::vector<VkVertexInputAttributeDescription> Model::Vertex::getAttributeDescriptions() {
     std::vector<VkVertexInputAttributeDescription> descriptions(2); 
     descriptions[0].binding = 0;
@@ -95,5 +94,5 @@ void Model::draw(VkCommandBuffer commandBuffer) {
     vkCmdDrawIndexed(commandBuffer, mIndexCount, 1, 0, 0, 0);
 }
 }
-}
+
 

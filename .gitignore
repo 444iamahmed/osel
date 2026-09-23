@@ -412,10 +412,23 @@ ext/spdlog
 build
 
 *.sln
-.clang-format
+# .clang-format is deliberately TRACKED: it is what keeps clangd, CLion and
+# VS Code from reformatting each other's work. Do not ignore it.
 /.zed
 
 Makefile
 compile_commands.json
 /.idea
 /.vscode
+# Repo digest for LLM context
+/digest.txt
+/.clang-format
+/.ignore
+/bear.yaml
+/CLAUDE.md
+/.nvim/dashboard.lua
+/notes.html
+/notes.md
+/notes-skill-brief.md
+/output.txt
+/scripts/render_notes.py

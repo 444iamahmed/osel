@@ -22,8 +22,7 @@ void Window::init() {
 	glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 }
 
-void Window::framebufferSizeCallback(GLFWwindow* inWindow, int width,
-									 int height) {
+void Window::framebufferSizeCallback(GLFWwindow* inWindow, int width, int height) {
 	auto handle = reinterpret_cast<Window*>(glfwGetWindowUserPointer(inWindow));
 	handle->framebufferResized = true;
 	handle->width = width;
@@ -34,4 +33,4 @@ Window::~Window() {
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
-}  // namespace PhoenixEngine
+} // namespace OselEngine

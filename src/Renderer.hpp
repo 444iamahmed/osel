@@ -3,6 +3,6 @@
 namespace OselEngine {
 
 class Renderer {
-   public:
+public:
 };
-}  // namespace PhoenixEngine
+} // namespace OselEngine

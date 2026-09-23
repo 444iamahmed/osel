@@ -16,5 +16,5 @@ void Window::createSurface(VkInstance& instance, VkSurfaceKHR& surface) const {
 		throw std::runtime_error("Failed to create window surface!");
 	}
 }
-}  // namespace Vulkan
-}  // namespace PhoenixEngine
+} // namespace Vulkan
+} // namespace OselEngine

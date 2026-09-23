@@ -13,6 +13,7 @@ App::~App() {
 
 void App::run() {
 	mRenderer.loadModels();
+	mRenderer.updateDescriptorSets(mTexture);
 	spdlog::info("Starting Phoenix Engine app");
 	while (!mWindow.shouldClose()) {
 		glfwPollEvents();
@@ -22,4 +23,4 @@ void App::run() {
 	vkDeviceWaitIdle(mDevice.get());
 }
 
-}  // namespace PhoenixEngine
+} // namespace OselEngine

@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-namespace  OselEngine {
+namespace OselEngine {
 namespace Vulkan {
 SwapChain::SwapChain(Device& device, VkExtent2D extent) : mDevice{device}, mWindowExtent{extent} {
 	init();
@@ -52,7 +52,7 @@ void SwapChain::createDepthResources() {
 
 VkFormat SwapChain::findDepthFormat() {
 	return mDevice.findSupportedFormat(
-		{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+		{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
 		VK_IMAGE_TILING_OPTIMAL,
 		VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
 	);
@@ -111,7 +111,7 @@ void SwapChain::createSwapChain() {
 	createInfo.clipped = VK_TRUE;
 
 	VkResult result =
-	vkCreateSwapchainKHR(mDevice.get(), &createInfo, nullptr, &mSwapChain);
+		vkCreateSwapchainKHR(mDevice.get(), &createInfo, nullptr, &mSwapChain);
 	if (result != VK_SUCCESS) {
 		std::cout << "Error: " << result << "\n";
 		throw std::runtime_error("Failed to create swapchain!");
@@ -124,8 +124,7 @@ void SwapChain::createSwapChain() {
 	spdlog::info("tried something here!");
 	vkGetSwapchainImagesKHR(mDevice.get(), mSwapChain, &swapchainImageCount, nullptr);
 	mSwapchainImages.resize(swapchainImageCount);
-	vkGetSwapchainImagesKHR(mDevice.get(), mSwapChain, &swapchainImageCount,
-							mSwapchainImages.data());
+	vkGetSwapchainImagesKHR(mDevice.get(), mSwapChain, &swapchainImageCount, mSwapchainImages.data());
 }
 
 void SwapChain::createImageViews() {
@@ -226,8 +225,7 @@ void SwapChain::createFrameBuffers() {
 		framebufferInfo.width = mSwapChainExtent.width;
 		framebufferInfo.height = mSwapChainExtent.height;
 		framebufferInfo.layers = 1;
-		if (vkCreateFramebuffer(mDevice.get(), &framebufferInfo, nullptr,
-								&mFrameBuffers[i]) != VK_SUCCESS) {
+		if (vkCreateFramebuffer(mDevice.get(), &framebufferInfo, nullptr, &mFrameBuffers[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create framebuffer!");
 		}
 	}
@@ -247,19 +245,17 @@ void SwapChain::createSyncObjects() {
 	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 	for (size_t i = 0; i < mSwapchainImages.size(); i++) {
-		if (vkCreateSemaphore(mDevice.get(), &semaphoreCreateInfo, nullptr,
-							  &mRenderFinishedSemaphores[i]) != VK_SUCCESS) {
+		if (vkCreateSemaphore(mDevice.get(), &semaphoreCreateInfo, nullptr, &mRenderFinishedSemaphores[i]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create Semaphore");
 		}
 	}
 
 	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		if (vkCreateSemaphore(mDevice.get(), &semaphoreCreateInfo, nullptr,
-							  &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
-			vkCreateFence(mDevice.get(), &fenceCreateInfo, nullptr,
-						  &mInFlightFences[i]) != VK_SUCCESS) {
+		if (vkCreateSemaphore(mDevice.get(), &semaphoreCreateInfo, nullptr, &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
+			vkCreateFence(mDevice.get(), &fenceCreateInfo, nullptr, &mInFlightFences[i]) != VK_SUCCESS) {
 			throw std::runtime_error(
-				"failed to create fences and image available semaphores");
+				"failed to create fences and image available semaphores"
+			);
 		}
 	}
 	spdlog::info("Semaphores created");
@@ -267,7 +263,8 @@ void SwapChain::createSyncObjects() {
 }
 
 const VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(
-	const std::vector<VkSurfaceFormatKHR>& availableFormats) const {
+	const std::vector<VkSurfaceFormatKHR>& availableFormats
+) const {
 	for (auto& format : availableFormats) {
 		if (format.format == VK_FORMAT_B8G8R8A8_SRGB &&
 			format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -279,7 +276,8 @@ const VkSurfaceFormatKHR SwapChain::chooseSurfaceFormat(
 }
 
 const VkPresentModeKHR SwapChain::choosePresentMode(
-	const std::vector<VkPresentModeKHR>& availableModes) const {
+	const std::vector<VkPresentModeKHR>& availableModes
+) const {
 	for (auto& presentMode : availableModes) {
 		if (presentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 			return presentMode;
@@ -306,7 +304,7 @@ const VkExtent2D SwapChain::chooseExtent(const VkSurfaceCapabilitiesKHR& capabil
 	}
 }
 
-const VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) const {
+const VkResult SwapChain::acquireNextImage(uint32_t* imageIndex) const {
 	vkWaitForFences(
 		mDevice.get(),
 		1,
@@ -319,7 +317,7 @@ const VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) const {
 		mDevice.get(),
 		mSwapChain,
 		std::numeric_limits<uint64_t>::max(),
-		mImageAvailableSemaphores[mCurrentFrame],  // must be a not signaled semaphore
+		mImageAvailableSemaphores[mCurrentFrame], // must be a not signaled semaphore
 		VK_NULL_HANDLE,
 		imageIndex
 	);
@@ -327,26 +325,26 @@ const VkResult SwapChain::acquireNextImage(uint32_t *imageIndex) const {
 	return result;
 }
 
-const VkResult SwapChain::submitCommandBuffer(const VkCommandBuffer* buffers, const uint32_t *imageIndex) {
+const VkResult SwapChain::submitCommandBuffer(const VkCommandBuffer* buffers, const uint32_t* imageIndex) {
 	vkResetFences(mDevice.get(), 1, &mInFlightFences[mCurrentFrame]);
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	VkSemaphore waitSemaphores[] = { mImageAvailableSemaphores[mCurrentFrame] };
+	VkSemaphore waitSemaphores[] = {mImageAvailableSemaphores[mCurrentFrame]};
 	VkPipelineStageFlags waitStages[] = {
-		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+	};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = buffers;
-	VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores[*imageIndex] };
+	VkSemaphore signalSemaphores[] = {mRenderFinishedSemaphores[*imageIndex]};
 
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
-	if (vkQueueSubmit(mDevice.getGraphicsQueue(), 1, &submitInfo,
-		mInFlightFences[mCurrentFrame]) != VK_SUCCESS) {
-			throw std::runtime_error("failed to submit draw command buffer!");
+	if (vkQueueSubmit(mDevice.getGraphicsQueue(), 1, &submitInfo, mInFlightFences[mCurrentFrame]) != VK_SUCCESS) {
+		throw std::runtime_error("failed to submit draw command buffer!");
 	}
 
 	VkPresentInfoKHR presentInfo{};
@@ -354,7 +352,7 @@ const VkResult SwapChain::submitCommandBuffer(const VkCommandBuffer* buffers, co
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = { mSwapChain };
+	VkSwapchainKHR swapChains[] = {mSwapChain};
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = imageIndex;
@@ -369,4 +367,4 @@ const VkResult SwapChain::submitCommandBuffer(const VkCommandBuffer* buffers, co
 	return result;
 }
 } // namespace Vulkan
-} // namespace PhoenixEngine
+} // namespace OselEngine

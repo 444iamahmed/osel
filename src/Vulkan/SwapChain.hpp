@@ -6,7 +6,7 @@
 #include <memory>
 
 namespace OselEngine {
-namespace  Vulkan {
+namespace Vulkan {
 class SwapChain {
 public:
 	static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
@@ -16,16 +16,17 @@ public:
 
 	~SwapChain();
 
-	SwapChain(const SwapChain &) = delete;
-	SwapChain &operator=(const SwapChain &) = delete;
+	SwapChain(const SwapChain&) = delete;
+	SwapChain& operator=(const SwapChain&) = delete;
 
 	VkRenderPass& getRenderPass() { return mRenderPass; }
 	VkFramebuffer& getFrameBuffer(size_t index) { return mFrameBuffers[index]; }
 	VkExtent2D& getSwapChainExtent() { return mSwapChainExtent; }
 
-	const VkResult acquireNextImage(uint32_t *) const;
+	const VkResult acquireNextImage(uint32_t*) const;
 	const VkResult submitCommandBuffer(const VkCommandBuffer*, const uint32_t*);
-	const uint32_t getCurrentFrame() const {return mCurrentFrame;}
+	const uint32_t getCurrentFrame() const { return mCurrentFrame; }
+
 private:
 	void init();
 	void createSwapChain();
@@ -62,7 +63,6 @@ private:
 
 	std::vector<VkFramebuffer> mFrameBuffers;
 
-
 	std::vector<VkSemaphore> mImageAvailableSemaphores;
 	std::vector<VkSemaphore> mRenderFinishedSemaphores;
 	std::vector<VkFence> mInFlightFences;
@@ -71,5 +71,5 @@ private:
 	VkFormat mDepthFormat;
 };
 
-}
-}
+} // namespace Vulkan
+} // namespace OselEngine

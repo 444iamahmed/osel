@@ -9,8 +9,7 @@
 #include <unistd.h>
 #endif
 
-class Utils
-{
+class Utils {
 public:
 	static bool existsDir(const std::filesystem::path& p) {
 		std::error_code ec;
@@ -25,5 +24,6 @@ public:
 	static std::filesystem::path getExecutableDir();
 	static std::filesystem::path getProjectRoot();
 	static std::filesystem::path assetPath(const std::filesystem::path& relative);
-	static bool isProjectRoot(const std::filesystem::path& p);;
+	static bool isProjectRoot(const std::filesystem::path& p);
+	;
 };

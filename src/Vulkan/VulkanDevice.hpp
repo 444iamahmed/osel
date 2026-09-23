@@ -1,13 +1,19 @@
 #pragma once
 
 #include "VulkanWindow.hpp"
+#include "vulkan_core.h"
 
 #include <cstdint>
 #include <vector>
+#include <map>
 
 namespace OselEngine {
 namespace Vulkan {
 const int MAX_FRAMES_IN_FLIGHT = 2;
+
+enum SamplerType {
+	BASIC
+};
 
 struct QueueFamilyIndices
 
@@ -59,6 +65,8 @@ public:
 
 	const VkCommandPool& getCommandPool() { return mCommandPool; }
 
+	const VkDescriptorPool& getDescriptorPool() { return mDescriptorPool; }
+
 	VkQueue getGraphicsQueue() const {
 		return mGraphicsQueue;
 	}
@@ -66,9 +74,8 @@ public:
 	VkQueue getPresentQueue() const {
 		return mPresentQueue;
 	}
-	
-	void recordCommandBuffer(VkCommandBuffer commandBuffer,
-							 uint32_t imageIndex) const;
+
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
 
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory);
 	void beginSingleTimeCommands(VkCommandBuffer commandBuffer);
@@ -76,6 +83,7 @@ public:
 	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory);
 	void createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, VkImageView& imageView);
 	VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+	VkSampler getSampler(const SamplerType);
 
 private:
 	void choosePhysicalDevice();
@@ -89,12 +97,16 @@ private:
 
 	void createCommandPool();
 
+	void createDescriptorPool();
+
+	void createSampler(VkFilter filter, VkSamplerAddressMode addressMode, float maxLod, VkSampler& sampler);
+	void createSamplers();
+
 	QueueFamilyIndices findQueueFamilies(const VkPhysicalDevice&) const;
 
 	SwapchainSupportDetails checkSwapChainSupport(const VkPhysicalDevice&);
 
 	bool isDeviceSuitable(const VkPhysicalDevice&);
-
 
 	bool checkExtensionSupport(const VkPhysicalDevice& device) const;
 
@@ -103,10 +115,10 @@ private:
 	bool checkValidationLayerSupport() const;
 
 	static void populateDebugMessengerCreateInfo(
-		VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+		VkDebugUtilsMessengerCreateInfoEXT& createInfo
+	);
 
 	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
 
 	Window& mWindow;
 
@@ -128,12 +140,17 @@ private:
 
 	VkCommandPool mCommandPool;
 
+	std::map<SamplerType, VkSampler> mSamplers;
+
+	VkDescriptorPool mDescriptorPool;
+
 	const std::vector<const char*> mValidationLayers = {
-		"VK_LAYER_KHRONOS_validation"};
+		"VK_LAYER_KHRONOS_validation"
+	};
 
 	const std::vector<const char*> mRequiredDeviceExtensions = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 	};
 };
-}  // namespace Vulkan
-}  // namespace PhoenixEngine
+} // namespace Vulkan
+} // namespace OselEngine

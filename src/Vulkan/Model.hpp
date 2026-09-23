@@ -15,6 +15,7 @@ public:
 	struct Vertex {
 		glm::vec3 position;
 		glm::vec3 color;
+		glm::vec2 uv;
 
 		static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions();
 		static std::vector<VkVertexInputBindingDescription> getBindingDescriptions();
@@ -43,5 +44,5 @@ private:
 	uint32_t mVertexCount;
 	uint32_t mIndexCount;
 };
-} //namespace Vulkan
-} //namespace PhoenixEngine
+} // namespace Vulkan
+} // namespace OselEngine

@@ -10,10 +10,10 @@ public:
 	~Window() {};
 
 	void createSurface(VkInstance& instance, VkSurfaceKHR& surface) const;
-	VkExtent2D getExtent() {return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; };
+	VkExtent2D getExtent() { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; };
 
-   protected:
+protected:
 	void setupHandle() override {};
 };
-}  // namespace Vulkan
-}  // namespace PhoenixEngine
+} // namespace Vulkan
+} // namespace OselEngine

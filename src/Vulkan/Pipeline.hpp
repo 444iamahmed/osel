@@ -7,68 +7,65 @@
 
 namespace OselEngine {
 namespace Vulkan {
-struct PipelineConfigInfo
-{
-    PipelineConfigInfo() = default;
-    PipelineConfigInfo(const PipelineConfigInfo&) = delete;
-    PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
+struct PipelineConfigInfo {
+	PipelineConfigInfo() = default;
+	PipelineConfigInfo(const PipelineConfigInfo&) = delete;
+	PipelineConfigInfo& operator=(const PipelineConfigInfo&) = delete;
 
-    std::vector<VkVertexInputBindingDescription> mVertexInputBindingDescriptions{};
-    std::vector<VkVertexInputAttributeDescription> mVertexInputAttributeDescriptions{};
+	std::vector<VkVertexInputBindingDescription> mVertexInputBindingDescriptions{};
+	std::vector<VkVertexInputAttributeDescription> mVertexInputAttributeDescriptions{};
 
-    VkPipelineViewportStateCreateInfo mViewportInfo;
-    VkPipelineInputAssemblyStateCreateInfo mInputAssemblyInfo;
-    VkPipelineRasterizationStateCreateInfo mRasterizationInfo;
-    VkPipelineMultisampleStateCreateInfo mMultisamplingInfo;
-    VkPipelineColorBlendAttachmentState mColorBlendAttachment;
-    VkPipelineColorBlendStateCreateInfo mColorBlendInfo;
-    VkPipelineDepthStencilStateCreateInfo mDepthStencilInfo;
+	VkPipelineViewportStateCreateInfo mViewportInfo;
+	VkPipelineInputAssemblyStateCreateInfo mInputAssemblyInfo;
+	VkPipelineRasterizationStateCreateInfo mRasterizationInfo;
+	VkPipelineMultisampleStateCreateInfo mMultisamplingInfo;
+	VkPipelineColorBlendAttachmentState mColorBlendAttachment;
+	VkPipelineColorBlendStateCreateInfo mColorBlendInfo;
+	VkPipelineDepthStencilStateCreateInfo mDepthStencilInfo;
 
-    std::vector<VkDynamicState> mDynamicStateEnables;
-    VkPipelineDynamicStateCreateInfo mDynamicStateInfo;
+	std::vector<VkDynamicState> mDynamicStateEnables;
+	VkPipelineDynamicStateCreateInfo mDynamicStateInfo;
 
-    VkPipelineLayout mPipelineLayout = nullptr;
-    VkRenderPass mRenderPass = nullptr;
+	VkPipelineLayout mPipelineLayout = nullptr;
+	VkRenderPass mRenderPass = nullptr;
 
-    uint32_t mSubpass = 0;
+	uint32_t mSubpass = 0;
 };
-    
-class Pipeline
-{
+
+class Pipeline {
 public:
-    Pipeline(
-        Device& device,
-        const std::string& vertFilePath,
-        const std::string& fragFilePath,
-        const PipelineConfigInfo& configInfo
-        );
-    ~Pipeline();
+	Pipeline(
+		Device& device,
+		const std::string& vertFilePath,
+		const std::string& fragFilePath,
+		const PipelineConfigInfo& configInfo
+	);
+	~Pipeline();
 
-    Pipeline(const Pipeline&) = delete;
-    Pipeline& operator=(const Pipeline&) = delete;
+	Pipeline(const Pipeline&) = delete;
+	Pipeline& operator=(const Pipeline&) = delete;
 
-    void bind(VkCommandBuffer commandBuffer) const;
+	void bind(VkCommandBuffer commandBuffer) const;
 
-    static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
+	static void defaultPipelineConfigInfo(PipelineConfigInfo& configInfo);
+
 private:
-    void createGraphicsPipeline(
-        const std::string& vertFilePath,
-        const std::string& fragFilePath,
-        const PipelineConfigInfo& configInfo
-        );
+	void createGraphicsPipeline(
+		const std::string& vertFilePath,
+		const std::string& fragFilePath,
+		const PipelineConfigInfo& configInfo
+	);
 
-    void createShaderModule(
-        const std::vector<char>& code,
-        VkShaderModule* shaderModule
-    ) const;
-    static std::vector<char> readFile(const std::filesystem::path& relative);
+	void createShaderModule(
+		const std::vector<char>& code,
+		VkShaderModule* shaderModule
+	) const;
+	static std::vector<char> readFile(const std::filesystem::path& relative);
 
-    Device& mDevice;
-    VkPipeline mGraphicsPipeline;
-    VkShaderModule mVertexShaderModule;
-    VkShaderModule mFragmentShaderModule;
+	Device& mDevice;
+	VkPipeline mGraphicsPipeline;
+	VkShaderModule mVertexShaderModule;
+	VkShaderModule mFragmentShaderModule;
 };
-}    
-}
-
-
+} // namespace Vulkan
+} // namespace OselEngine

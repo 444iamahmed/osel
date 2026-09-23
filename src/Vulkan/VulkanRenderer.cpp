@@ -2,11 +2,11 @@
 
 #include "VulkanDevice.hpp"
 #include "Model.hpp"
-#include "../Utils.hpp"
+#include "vulkan_core.h"
 
+#include <alloca.h>
 #include <cstdint>
-#include <fstream>
-#include <filesystem>
+#include <stdexcept>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/transform.hpp>
@@ -16,15 +16,23 @@
 namespace OselEngine {
 namespace Vulkan {
 Renderer::Renderer(Window& window, Device& device)
-: mWindow{window}, mDevice{device} {
+	: mWindow{window}, mDevice{device} {
 	recreateSwapChain();
 	createCommandBuffers();
 	createPushConstantRanges();
+	createDescriptorSetLayouts();
+	allocateDescriptorSets();
 	createPipelineLayout();
 	createPipeline();
 }
 
-Renderer::~Renderer() { freeCommandBuffers(); }
+Renderer::~Renderer() {
+	freeCommandBuffers();
+
+	for (auto descriptorSetLayout : mDescriptorSetLayouts) {
+		vkDestroyDescriptorSetLayout(mDevice.get(), descriptorSetLayout, nullptr);
+	}
+}
 
 void Renderer::drawFrame() {
 	VkResult result = mSwapChain->acquireNextImage(&mCurrentImageIndex);
@@ -46,7 +54,6 @@ void Renderer::drawFrame() {
 
 	mTimeFrame++;
 }
-
 
 void Renderer::recreateSwapChain() {
 	VkExtent2D extent = mWindow.getExtent();
@@ -87,17 +94,29 @@ void Renderer::freeCommandBuffers() {
 		mDevice.get(),
 		mDevice.getCommandPool(),
 		static_cast<uint32_t>(mCommandBuffers.size()),
-		mCommandBuffers.data());
-  mCommandBuffers.clear();
+		mCommandBuffers.data()
+	);
+	mCommandBuffers.clear();
 }
 
-void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer,
-								 uint32_t imageIndex) const {
+// TODO: Probably not required
+void Renderer::freeDescriptorSets() {
+	vkFreeDescriptorSets(
+		mDevice.get(),
+		mDevice.getDescriptorPool(),
+		static_cast<uint32_t>(mDescriptorSets.size()),
+		mDescriptorSets.data()
+	);
+
+	mDescriptorSets.clear();
+}
+
+void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex) const {
 	spdlog::info("recording command buffer");
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = 0;				   // Optional
-	beginInfo.pInheritanceInfo = nullptr;  // Optional
+	beginInfo.flags = 0;				  // Optional
+	beginInfo.pInheritanceInfo = nullptr; // Optional
 	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
 		throw std::runtime_error("failed to begin recording command buffer!");
 	}
@@ -117,8 +136,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer,
 	renderPassInfo.clearValueCount = 2;
 	renderPassInfo.pClearValues = clearValues;
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
-						 VK_SUBPASS_CONTENTS_INLINE);
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	mPipeline->bind(commandBuffer);
 	VkViewport viewport{};
 	viewport.x = 0.0f;
@@ -134,20 +152,32 @@ void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer,
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 	spdlog::info("drawing model");
+
+	vkCmdBindDescriptorSets(
+		commandBuffer,
+		VK_PIPELINE_BIND_POINT_GRAPHICS,
+		mPipelineLayout,
+		0,
+		1,
+		mDescriptorSets.data(),
+		0,
+		0
+	);
+
 	mModel->bind(commandBuffer);
 
-	//make a model view matrix for rendering the object
-	//camera position
-	glm::vec3 camPos = { 0.f,0.f,-2.f };
+	// make a model view matrix for rendering the object
+	// camera position
+	glm::vec3 camPos = {0.f, 0.f, -2.f};
 
 	glm::mat4 view = glm::translate(glm::mat4(1.f), camPos);
-	//camera projection
+	// camera projection
 	glm::mat4 projection = glm::perspective(glm::radians(70.f), 1700.f / 900.f, 0.1f, 200.0f);
 	projection[1][1] *= -1;
-	//model rotation
-	glm::mat4 model = glm::rotate(glm::mat4{ 1.0f }, glm::radians(mTimeFrame * 0.01f), glm::vec3(0, 1, 0));
+	// model rotation
+	glm::mat4 model = glm::rotate(glm::mat4{1.0f}, glm::radians(mTimeFrame * 0.01f), glm::vec3(0, 1, 0));
 
-	//calculate final mesh matrix
+	// calculate final mesh matrix
 	glm::mat4 mesh_matrix = projection * view * model;
 
 	SimplePushConstant constants;
@@ -165,18 +195,33 @@ void Renderer::recordCommandBuffer(VkCommandBuffer& commandBuffer,
 
 void Renderer::loadModels() {
 	spdlog::info("attempting model loading");
-	std::vector<Model::Vertex> vertices {
-		{{0.0, -0.5, .0}, {1.0, 0.0, 0.0}},
-		{{0.5, 0.5, .0}, {0.0, 1.0, 0.0}},
-		{{-0.5, 0.5, .0}, {0.0, 0.0, 1.0}},
-		{{-0., 0.0, 0.5}, {1.0, 0.0, 1.0}}
+	std::vector<Model::Vertex> vertices{
+		// face 0 — v1, v2, v3
+		{{0.5, 0.5, .0}, {0.0, 1.0, 0.0}, {0.0, 0.0}},
+		{{-0.5, 0.5, .0}, {0.0, 0.0, 1.0}, {1.0, 0.0}},
+		{{-0., 0.0, 0.5}, {1.0, 0.0, 1.0}, {0.5, 1.0}},
+
+		// face 1 — v3, v2, v0
+		{{-0., 0.0, 0.5}, {1.0, 0.0, 1.0}, {0.0, 0.0}},
+		{{-0.5, 0.5, .0}, {0.0, 0.0, 1.0}, {1.0, 0.0}},
+		{{0.0, -0.5, .0}, {1.0, 0.0, 0.0}, {0.5, 1.0}},
+
+		// face 2 — v3, v0, v1
+		{{-0., 0.0, 0.5}, {1.0, 0.0, 1.0}, {0.0, 0.0}},
+		{{0.0, -0.5, .0}, {1.0, 0.0, 0.0}, {1.0, 0.0}},
+		{{0.5, 0.5, .0}, {0.0, 1.0, 0.0}, {0.5, 1.0}},
+
+		// face 3 — v2, v1, v0
+		{{-0.5, 0.5, .0}, {0.0, 0.0, 1.0}, {0.0, 0.0}},
+		{{0.5, 0.5, .0}, {0.0, 1.0, 0.0}, {1.0, 0.0}},
+		{{0.0, -0.5, .0}, {1.0, 0.0, 0.0}, {0.5, 1.0}},
 	};
 
-	std::vector<uint16_t> indices {
-		1,2,3,
-		3,2,0,
-		3,0,1,
-		2,1,0
+	std::vector<uint16_t> indices{
+		0, 1, 2,
+		3, 4, 5,
+		6, 7, 8,
+		9, 10, 11
 	};
 
 	spdlog::info("successfully created vertices");
@@ -184,7 +229,7 @@ void Renderer::loadModels() {
 	mModel = std::make_unique<Model>(mDevice, vertices, indices);
 	spdlog::info("successfully created model");
 }
-	
+
 void Renderer::createPipeline() {
 	PipelineConfigInfo pipelineConfigInfo{};
 
@@ -192,35 +237,85 @@ void Renderer::createPipeline() {
 	pipelineConfigInfo.mRenderPass = getSwapChainRenderPass();
 	pipelineConfigInfo.mPipelineLayout = mPipelineLayout;
 
-	mPipeline =  std::make_unique<Pipeline>(
+	mPipeline = std::make_unique<Pipeline>(
 		mDevice,
 		"shaders/out/shader.vert.spv",
 		"shaders/out/shader.frag.spv",
 		pipelineConfigInfo
-		);
+	);
 }
 
 void Renderer::createPushConstantRanges() {
 	mPushConstantRanges.reserve(1);
 
-	mPushConstantRanges.push_back({
-		.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-		.offset = 0,
-		.size = sizeof(SimplePushConstant)
-	});
+	mPushConstantRanges.push_back({.stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .offset = 0, .size = sizeof(SimplePushConstant)});
+}
+
+void Renderer::createDescriptorSetLayouts() {
+	mDescriptorSetLayouts.resize(1);
+
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
+	descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	descriptorSetLayoutCreateInfo.bindingCount = 1;
+
+	VkDescriptorSetLayoutBinding binding = {};
+	binding.binding = 0;
+	binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	binding.descriptorCount = 1;
+	binding.pImmutableSamplers = nullptr;
+	binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	descriptorSetLayoutCreateInfo.pBindings = &binding;
+
+	if (vkCreateDescriptorSetLayout(mDevice.get(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayouts.back()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to create descriptor set layout");
+	}
+}
+
+void Renderer::allocateDescriptorSets() {
+	mDescriptorSets.resize(1);
+
+	VkDescriptorSetAllocateInfo allocateInfo = {};
+	allocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	allocateInfo.pSetLayouts = mDescriptorSetLayouts.data();
+	allocateInfo.descriptorSetCount = 1;
+	allocateInfo.descriptorPool = mDevice.getDescriptorPool();
+
+	if (vkAllocateDescriptorSets(mDevice.get(), &allocateInfo, mDescriptorSets.data()) != VK_SUCCESS) {
+		throw std::runtime_error("failed to allocate descriptor sets");
+	}
+}
+
+void Renderer::updateDescriptorSets(const Texture& texture) {
+	VkDescriptorImageInfo imageInfo = {};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = texture.getImageView();
+	imageInfo.sampler = texture.getSampler();
+
+	VkWriteDescriptorSet set = {};
+	set.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	set.dstSet = mDescriptorSets.back();
+	set.dstBinding = 0;
+	set.descriptorCount = 1;
+	set.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	set.pImageInfo = &imageInfo;
+
+	vkUpdateDescriptorSets(mDevice.get(), 1, &set, 0, nullptr);
 }
 
 void Renderer::createPipelineLayout() {
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 0;			// Optional
 
 	pipelineLayoutInfo.pPushConstantRanges = mPushConstantRanges.data();
-	pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(mPushConstantRanges.size());	// Optional
+	pipelineLayoutInfo.pushConstantRangeCount = static_cast<uint32_t>(mPushConstantRanges.size()); // Optional
+
+	pipelineLayoutInfo.pSetLayouts = mDescriptorSetLayouts.data();
+	pipelineLayoutInfo.setLayoutCount = 1;
 
 	if (vkCreatePipelineLayout(mDevice.get(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS) {
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 }
 } // namespace Vulkan
-} // namespace PhoenixEngine
+} // namespace OselEngine
